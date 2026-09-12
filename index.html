@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wochenliste</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<meta name="theme-color" content="#1B2430">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+:root{
+  --paper:#F2F3F0;
+  --surface:#FFFFFF;
+  --ink:#1B2430;
+  --muted:#6B7684;
+  --faint:#A9B0AA;
+  --rule:#DEE1DB;
+  --accent:#2F6B5F;
+  --warn:#8C3B32;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --paper:#14191F;
+    --surface:#1B2430;
+    --ink:#E8EAE6;
+    --muted:#96A0AC;
+    --faint:#5D6875;
+    --rule:#2A343F;
+    --accent:#5EA893;
+    --warn:#D4867C;
+  }
+}
+
+*{box-sizing:border-box}
+html{background:var(--paper)}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:Roboto,system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  font-size:16px;
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+  -webkit-text-size-adjust:100%;
+  -webkit-tap-highlight-color:transparent;
+}
+button,input{font:inherit;color:inherit}
+button{background:none;border:0;padding:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+
+.wrap{
+  max-width:580px;margin:0 auto;
+  padding:calc(22px + env(safe-area-inset-top)) 18px calc(72px + env(safe-area-inset-bottom));
+}
+
+/* Kopf */
+.kw{margin:0;font-size:13px;font-weight:500;color:var(--muted);letter-spacing:.02em}
+.range{margin:2px 0 0;font-size:32px;font-weight:200;letter-spacing:-.015em;line-height:1.15}
+.tally{margin:10px 0 0;font-size:14px;color:var(--muted)}
+.headRule{height:1px;background:var(--rule);margin:20px 0 18px;border:0}
+
+/* Eingabe */
+.compose{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:12px}
+#input{width:100%;border:0;background:transparent;padding:6px 2px;font-size:17px}
+#input::placeholder{color:var(--faint)}
+.composeRow{display:flex;align-items:center;gap:10px;margin-top:10px}
+.seg{display:flex;border:1px solid var(--rule);border-radius:7px;overflow:hidden;flex:1}
+.seg button{flex:1;padding:9px 4px;font-size:13.5px;font-weight:500;color:var(--muted);
+  border-right:1px solid var(--rule);min-height:42px}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--ink);color:var(--paper)}
+.add{background:var(--accent);color:#fff;font-weight:500;font-size:14.5px;
+  padding:10px 16px;border-radius:7px;min-height:42px;white-space:nowrap}
+.add[disabled]{background:var(--faint);cursor:default}
+
+/* Gruppen */
+.group{margin-top:26px}
+.ghead{display:flex;align-items:baseline;gap:8px;padding-bottom:6px;border-bottom:1px solid var(--rule)}
+.gname{font-size:15px;font-weight:600;letter-spacing:-.005em}
+.gcount{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+ul{list-style:none;margin:0;padding:0}
+
+/* Zeile */
+.row{position:relative;display:flex;align-items:flex-start;gap:11px;
+  padding:14px 0 14px 14px;border-bottom:1px solid var(--rule)}
+.row::before{content:"";position:absolute;left:0;top:13px;bottom:13px;border-radius:2px}
+.p-hoch::before{width:5px;background:var(--ink)}
+.p-mittel::before{width:3px;background:var(--muted)}
+.p-gering::before{width:2px;background:var(--faint)}
+
+.checkTap{flex:0 0 auto;padding:2px 6px 12px 0;margin:-2px -6px -12px 0}
+.check{width:22px;height:22px;border:1.6px solid var(--muted);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;color:transparent;
+  transition:background .12s,border-color .12s}
+.check svg{display:block}
+.row.done .check{background:var(--accent);border-color:var(--accent);color:#fff}
+
+.text{flex:1;text-align:left;font-size:16px;line-height:1.4;word-break:break-word}
+.row.done .text{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px}
+.edit{flex:1;border:0;border-bottom:1.5px solid var(--accent);background:transparent;
+  padding:0 0 2px;font-size:16px}
+
+.more{flex:0 0 auto;width:36px;height:30px;color:var(--faint);font-size:19px;
+  line-height:1;letter-spacing:1px;text-align:right}
+
+.actions{flex-basis:100%;display:flex;flex-wrap:wrap;gap:7px;padding:12px 0 2px}
+.actions button{font-size:13px;font-weight:500;color:var(--muted);border:1px solid var(--rule);
+  border-radius:6px;padding:8px 11px;background:var(--surface);min-height:36px}
+.actions button.cur{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.actions .del{color:var(--warn);margin-left:auto}
+
+/* Erledigt */
+.doneWrap{margin-top:30px}
+.doneToggle{font-size:14px;font-weight:500;color:var(--muted);padding:8px 0}
+.doneToggle span{color:var(--faint);font-variant-numeric:tabular-nums}
+
+/* Leer & Fuß */
+.empty{margin-top:34px;padding:22px 18px;border:1px dashed var(--rule);border-radius:10px;
+  color:var(--muted);font-size:15px;background:var(--surface)}
+.foot{margin-top:36px;padding-top:18px;border-top:1px solid var(--rule)}
+.newWeek{font-size:14.5px;font-weight:500;color:var(--accent);padding:4px 0}
+.confirm{font-size:14px;color:var(--muted)}
+.confirm p{margin:0 0 10px}
+.confirm .go{background:var(--ink);color:var(--paper);padding:10px 14px;border-radius:7px;
+  font-size:14px;font-weight:500}
+.confirm .no{padding:10px 12px;font-size:14px;color:var(--muted)}
+
+.data{margin-top:22px}
+.dataToggle{font-size:13.5px;color:var(--muted);padding:4px 0}
+.dataBody{margin-top:12px;font-size:13.5px;color:var(--muted)}
+.dataBody p{margin:0 0 12px;max-width:46em}
+.dataBtns{display:flex;gap:8px;flex-wrap:wrap}
+.dataBtns button{font-size:13.5px;font-weight:500;border:1px solid var(--rule);
+  border-radius:7px;padding:9px 13px;background:var(--surface);min-height:38px}
+.status{margin-top:14px;font-size:13px;color:var(--faint);min-height:18px}
+.status.bad{color:var(--warn)}
+.hidden{display:none}
+
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="kw" id="kw">&nbsp;</p>
+    <h1 class="range" id="range">&nbsp;</h1>
+    <p class="tally" id="tally"></p>
+  </header>
+  <hr class="headRule">
+
+  <section class="compose">
+    <input id="input" type="text" placeholder="Was steht an?" autocomplete="off" enterkeyhint="done">
+    <div class="composeRow">
+      <div class="seg" id="seg" role="group" aria-label="Priorität">
+        <button type="button" data-p="hoch">Hoch</button>
+        <button type="button" data-p="mittel" class="on">Mittel</button>
+        <button type="button" data-p="gering">Gering</button>
+      </div>
+      <button type="button" id="add" class="add" disabled>Hinzufügen</button>
+    </div>
+  </section>
+
+  <main id="list"></main>
+
+  <section class="doneWrap hidden" id="doneWrap">
+    <button type="button" class="doneToggle" id="doneToggle"></button>
+    <ul id="doneList" class="hidden"></ul>
+  </section>
+
+  <div class="foot">
+    <button type="button" class="newWeek" id="newWeek">Neue Woche beginnen</button>
+    <div class="confirm hidden" id="confirm">
+      <p>Erledigte Aufgaben werden gelöscht, offene wandern in die neue Woche.</p>
+      <button type="button" class="go" id="confirmGo">Neue Woche beginnen</button>
+      <button type="button" class="no" id="confirmNo">Abbrechen</button>
+    </div>
+
+    <div class="data">
+      <button type="button" class="dataToggle" id="dataToggle">Sicherung und Wiederherstellung</button>
+      <div class="dataBody hidden" id="dataBody">
+        <p>Die Liste liegt nur auf diesem Gerät. Wenn du die App löschst oder die
+           Browserdaten leerst, ist sie weg. Lade dir gelegentlich eine Sicherung herunter.</p>
+        <div class="dataBtns">
+          <button type="button" id="backup">Sicherung herunterladen</button>
+          <button type="button" id="restoreBtn">Sicherung einlesen</button>
+        </div>
+        <input type="file" id="restoreFile" accept="application/json,.json" class="hidden">
+      </div>
+    </div>
+
+    <p class="status" id="status"></p>
+  </div>
+</div>
+
+<script>
+"use strict";
+const KEY = "wochenliste:v1";
+const PRIOS = ["hoch", "mittel", "gering"];
+const LABEL = {hoch: "Hoch", mittel: "Mittel", gering: "Gering"};
+
+let state = null;
+let draftPrio = "mittel";
+let openRow = null;
+let editRow = null;
+let showDone = false;
+
+/* ---------- Datum ---------- */
+function mondayOf(d){
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+  return x;
+}
+function planningWeekStart(){
+  const now = new Date();
+  const m = mondayOf(now);
+  const day = now.getDay();
+  if(day === 6 || day === 0) m.setDate(m.getDate() + 7);
+  return m;
+}
+function isoWeek(d){
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  t.setUTCDate(t.getUTCDate() - ((t.getUTCDay() + 6) % 7) + 3);
+  const ft = new Date(Date.UTC(t.getUTCFullYear(), 0, 4));
+  ft.setUTCDate(ft.getUTCDate() - ((ft.getUTCDay() + 6) % 7) + 3);
+  return 1 + Math.round((t - ft) / 604800000);
+}
+function fmtRange(start){
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  const long = new Intl.DateTimeFormat("de-DE", {month: "long"});
+  const short = new Intl.DateTimeFormat("de-DE", {month: "short"});
+  if(start.getMonth() === end.getMonth())
+    return start.getDate() + ". – " + end.getDate() + ". " + long.format(end);
+  return start.getDate() + ". " + short.format(start) + " – " + end.getDate() + ". " + short.format(end);
+}
+function toISO(d){
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" +
+         String(d.getDate()).padStart(2, "0");
+}
+
+/* ---------- Speicher ---------- */
+function fresh(){
+  return {weekStart: toISO(planningWeekStart()), tasks: []};
+}
+function valid(v){
+  return v && typeof v.weekStart === "string" && Array.isArray(v.tasks);
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    const v = raw ? JSON.parse(raw) : null;
+    state = valid(v) ? v : fresh();
+  }catch(e){
+    state = fresh();
+    setStatus("Gespeicherte Liste nicht lesbar. Neu begonnen.", true);
+  }
+}
+function save(){
+  try{
+    localStorage.setItem(KEY, JSON.stringify(state));
+    setStatus("");
+  }catch(e){
+    setStatus("Speichern fehlgeschlagen. Speicher des Geräts prüfen.", true);
+  }
+}
+function setStatus(msg, bad){
+  const el = document.getElementById("status");
+  el.className = "status" + (bad ? " bad" : "");
+  el.textContent = msg || "";
+}
+
+/* ---------- Aufgaben ---------- */
+function addTask(){
+  const inp = document.getElementById("input");
+  const text = inp.value.trim();
+  if(!text) return;
+  state.tasks.push({
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    text: text,
+    prio: draftPrio,
+    done: false
+  });
+  inp.value = "";
+  document.getElementById("add").disabled = true;
+  save();
+  render();
+}
+
+/* ---------- Darstellung ---------- */
+function render(){
+  const start = new Date(state.weekStart + "T00:00:00");
+  document.getElementById("kw").textContent = "Kalenderwoche " + isoWeek(start);
+  document.getElementById("range").textContent = fmtRange(start);
+
+  const open = state.tasks.filter(t => !t.done);
+  const done = state.tasks.filter(t => t.done);
+  document.getElementById("tally").textContent =
+    (open.length === 0 && done.length === 0)
+      ? "Noch keine Aufgaben"
+      : open.length + " offen, " + done.length + " erledigt";
+
+  const list = document.getElementById("list");
+  list.textContent = "";
+
+  if(open.length === 0){
+    const d = document.createElement("div");
+    d.className = "empty";
+    d.textContent = done.length
+      ? "Alles abgehakt. Die Woche ist durch."
+      : "Trag die erste Aufgabe für die Woche ein.";
+    list.append(d);
+  }else{
+    PRIOS.forEach(p => {
+      const items = open.filter(t => t.prio === p);
+      if(!items.length) return;
+      const g = document.createElement("div");
+      g.className = "group";
+      const h = document.createElement("div");
+      h.className = "ghead";
+      const n = document.createElement("span");
+      n.className = "gname";
+      n.textContent = LABEL[p];
+      const c = document.createElement("span");
+      c.className = "gcount";
+      c.textContent = items.length;
+      h.append(n, c);
+      const ul = document.createElement("ul");
+      items.forEach(t => ul.append(rowEl(t)));
+      g.append(h, ul);
+      list.append(g);
+    });
+  }
+
+  const dw = document.getElementById("doneWrap");
+  const dl = document.getElementById("doneList");
+  dw.classList.toggle("hidden", done.length === 0);
+  const dt = document.getElementById("doneToggle");
+  dt.textContent = showDone ? "Erledigt ausblenden " : "Erledigt anzeigen ";
+  const cnt = document.createElement("span");
+  cnt.textContent = done.length;
+  dt.append(cnt);
+  dl.classList.toggle("hidden", !showDone);
+  dl.textContent = "";
+  if(showDone) done.forEach(t => dl.append(rowEl(t)));
+}
+
+function rowEl(t){
+  const li = document.createElement("li");
+  li.className = "row p-" + t.prio + (t.done ? " done" : "");
+
+  const tap = document.createElement("button");
+  tap.type = "button";
+  tap.className = "checkTap";
+  tap.setAttribute("aria-pressed", String(t.done));
+  tap.setAttribute("aria-label", t.done ? "Als offen markieren" : "Als erledigt markieren");
+  const box = document.createElement("span");
+  box.className = "check";
+  box.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true">' +
+    '<path d="M2.5 8.5 6 12 13.5 4" fill="none" stroke="currentColor" stroke-width="2.4" ' +
+    'stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  tap.append(box);
+  tap.onclick = () => { t.done = !t.done; openRow = null; save(); render(); };
+  li.append(tap);
+
+  if(editRow === t.id){
+    const inp = document.createElement("input");
+    inp.className = "edit";
+    inp.value = t.text;
+    let closed = false;
+    const commit = () => {
+      if(closed) return;
+      closed = true;
+      const v = inp.value.trim();
+      if(v) t.text = v;
+      editRow = null;
+      save();
+      render();
+    };
+    inp.onkeydown = e => {
+      if(e.key === "Enter") commit();
+      if(e.key === "Escape"){ closed = true; editRow = null; render(); }
+    };
+    inp.onblur = commit;
+    li.append(inp);
+    setTimeout(() => { inp.focus(); inp.select(); }, 0);
+  }else{
+    const txt = document.createElement("button");
+    txt.type = "button";
+    txt.className = "text";
+    txt.textContent = t.text;
+    txt.onclick = () => { t.done = !t.done; openRow = null; save(); render(); };
+    li.append(txt);
+  }
+
+  const more = document.createElement("button");
+  more.type = "button";
+  more.className = "more";
+  more.setAttribute("aria-label", "Optionen für " + t.text);
+  more.setAttribute("aria-expanded", String(openRow === t.id));
+  more.textContent = "···";
+  more.onclick = () => { openRow = (openRow === t.id) ? null : t.id; render(); };
+  li.append(more);
+
+  if(openRow === t.id){
+    const strip = document.createElement("div");
+    strip.className = "actions";
+    PRIOS.forEach(p => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = (t.prio === p) ? "cur" : "";
+      b.textContent = LABEL[p];
+      b.onclick = () => { t.prio = p; openRow = null; save(); render(); };
+      strip.append(b);
+    });
+    const ren = document.createElement("button");
+    ren.type = "button";
+    ren.textContent = "Umbenennen";
+    ren.onclick = () => { editRow = t.id; openRow = null; render(); };
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "del";
+    del.textContent = "Löschen";
+    del.onclick = () => {
+      state.tasks = state.tasks.filter(x => x.id !== t.id);
+      openRow = null;
+      save();
+      render();
+    };
+    strip.append(ren, del);
+    li.append(strip);
+  }
+  return li;
+}
+
+/* ---------- Sicherung ---------- */
+function backup(){
+  try{
+    const blob = new Blob([JSON.stringify(state, null, 2)], {type: "application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "wochenliste-" + state.weekStart + ".json";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    setStatus("Sicherung erstellt.", false);
+  }catch(e){
+    setStatus("Sicherung fehlgeschlagen.", true);
+  }
+}
+function restore(file){
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const v = JSON.parse(r.result);
+      if(!valid(v)) throw new Error("Format");
+      state = v;
+      save();
+      render();
+      setStatus("Sicherung eingelesen.", false);
+    }catch(e){
+      setStatus("Datei ist keine gültige Sicherung.", true);
+    }
+  };
+  r.onerror = () => setStatus("Datei nicht lesbar.", true);
+  r.readAsText(file);
+}
+
+/* ---------- Ereignisse ---------- */
+document.getElementById("seg").onclick = e => {
+  const b = e.target.closest("button[data-p]");
+  if(!b) return;
+  draftPrio = b.dataset.p;
+  Array.from(e.currentTarget.children).forEach(c => c.classList.toggle("on", c === b));
+};
+const inp = document.getElementById("input");
+inp.oninput = () => { document.getElementById("add").disabled = !inp.value.trim(); };
+inp.onkeydown = e => { if(e.key === "Enter") addTask(); };
+document.getElementById("add").onclick = addTask;
+document.getElementById("doneToggle").onclick = () => { showDone = !showDone; render(); };
+
+document.getElementById("newWeek").onclick = () => {
+  document.getElementById("newWeek").classList.add("hidden");
+  document.getElementById("confirm").classList.remove("hidden");
+};
+document.getElementById("confirmNo").onclick = () => {
+  document.getElementById("confirm").classList.add("hidden");
+  document.getElementById("newWeek").classList.remove("hidden");
+};
+document.getElementById("confirmGo").onclick = () => {
+  state.tasks = state.tasks.filter(t => !t.done);
+  const cur = new Date(state.weekStart + "T00:00:00");
+  const next = planningWeekStart();
+  state.weekStart = toISO(next > cur ? next : new Date(cur.getTime() + 7 * 86400000));
+  document.getElementById("confirm").classList.add("hidden");
+  document.getElementById("newWeek").classList.remove("hidden");
+  showDone = false;
+  save();
+  render();
+};
+
+document.getElementById("dataToggle").onclick = () => {
+  document.getElementById("dataBody").classList.toggle("hidden");
+};
+document.getElementById("backup").onclick = backup;
+document.getElementById("restoreBtn").onclick = () => document.getElementById("restoreFile").click();
+document.getElementById("restoreFile").onchange = e => {
+  if(e.target.files && e.target.files[0]) restore(e.target.files[0]);
+  e.target.value = "";
+};
+
+load();
+render();
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
